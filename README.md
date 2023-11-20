@@ -1,6 +1,5 @@
 # Proyecto IoT - Grupo 12 - ESTACIONAMIENTO INTELIGENTE
 ## 
-Proyecto de IoT para la asignatura informática industrial del cuarto curso de ingeniería electrónica, robótica y mecatrónica.
 ## Descripción del proyecto
 El proyecto de Estacionamiento Inteligente propone una solución avanzada y eficiente para la gestión automatizada de un aparcamiento, utilizando tecnologías de Internet de las Cosas (IoT). Este sistema integra diversas funciones clave para mejorar la seguridad, la eficiencia y la experiencia general de estacionamiento.
 
