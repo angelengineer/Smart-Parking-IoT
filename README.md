@@ -3,6 +3,8 @@ https://uma365-my.sharepoint.com/:w:/g/personal/angelmr_uma_es/EdRbdbyZhfVOqO8wK
 ## 
 II12 q4PAfzx5
 ## 
+![image](https://github.com/angelengineer/ProyectoIoT/assets/145780323/0d301a24-48fc-4aa3-b911-7abfcadc3c7b)
+## 
 ## Descripción del proyecto
 El proyecto de Estacionamiento Inteligente propone una solución avanzada y eficiente para la gestión automatizada de un aparcamiento, utilizando tecnologías de Internet de las Cosas (IoT). Este sistema integra diversas funciones clave para mejorar la seguridad, la eficiencia y la experiencia general de estacionamiento.
 
