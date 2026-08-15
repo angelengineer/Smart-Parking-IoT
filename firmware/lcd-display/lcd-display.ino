@@ -1,4 +1,9 @@
 
+/*
+  Display de disponibilidad para el estacionamiento inteligente.
+  Recibe el estado por una entrada digital y lo muestra en un LCD 16x2.
+*/
+
 #include <LiquidCrystal.h>
 
 

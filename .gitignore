@@ -1,0 +1,14 @@
+# Arduino build output
+build/
+*.bin
+*.elf
+*.hex
+
+# Local credentials
+firmware/access-controller/config.h
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,46 +1,20 @@
-#include <string>
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include <iostream>
-#include <sstream>
-#include "DHTesp.h"
-#include <ESP8266httpUpdate.h>
-#include <ESP8266HTTPClient.h>
-#include <EasyBuzzer.h>
 #include <Servo.h>
+#include "config.h"
 
 //OBJETOS
 Servo miServo;  // Crea un objeto de la clase Servo para controlar el servo
 WiFiClient wClient;
-HTTPClient https;
 PubSubClient mqtt_client(wClient);
 
-// definimos macro para indicar función y línea de código en los mensajes
-#define DEBUG_STRING "["+String(__FUNCTION__)+"():"+String(__LINE__)+"] "
-
-#define __HTTPS__
-
-#ifdef __HTTPS__
-  #include <WiFiClientSecure.h>
-  WiFiClientSecure ClienteWiFi;
-  const String URL_BASE = "https://iot.ac.uma.es:1880";
-  // huella digital SHA-1 del servidor iot.ac.uma.es (vencimiento enero 2024)
-  const char* fingerprint = "DE:3C:76:79:45:D8:F0:13:9F:22:A5:42:97:0B:F6:56:4E:E6:B8:FD";
-#else
-  #include <WiFiClient.h>
-  WiFiClient ClienteWiFi;
-  const String URL_BASE = "http://192.168.1.147:1880";
-#endif
-
 //Strings para wifi-mqtt
-const String ssid     = "DIGIFIBRA-YD3Q";
-const String password = "s9Ck42zKFefb";
-//const String ssid     = "infind";
-//const String password = "1518wifi";
-const String mqtt_server = "iot.ac.uma.es";
-const String mqtt_user = "II12";
-const String mqtt_pass = "q4PAfzx5";
+const String ssid = WIFI_SSID;
+const String password = WIFI_PASSWORD;
+const String mqtt_server = MQTT_HOST;
+const String mqtt_user = MQTT_USERNAME;
+const String mqtt_pass = MQTT_PASSWORD;
 
 //Cadenas para topics e ID
 String ID_PLACA;
@@ -60,9 +34,6 @@ const int PIN_LIBRE = 2;
 //Variables globales
 int angulo0 = 0;  // Ángulo inicial del servo
 int angulo180 = 180;  // Ángulo final del servo
-int paso = 1;  // Incremento en grados para mover el servo
-bool abriendoPuerta = false;
-bool cerrandoPuerta = false;
 String puerta = "";
 bool confirmado = false;
 bool libre = false;
@@ -115,54 +86,6 @@ void conecta_mqtt() {
 }
 
 /*------------------------------------------------------------------------------------------
----------------PETICIOENES HTTP---------------------------------------------------------------------
---------------------------------------------------------------------------------------------*/
-int http_GET(String URL, String* respuesta)
-{
-  return peticion_HTTP("GET", URL, "", respuesta);
-}
-//-----------------------------------------------------------
-int http_POST(String URL, String body, String* respuesta)
-{
-  return peticion_HTTP("POST", URL, body, respuesta);
-}
-//-----------------------------------------------------------
-int peticion_HTTP (String metodo, String URL, String body, String* respuesta)
-{
-  int httpCode=-1;
-  unsigned long start = millis();
-  if (https.begin(ClienteWiFi, URL)) {  // HTTPS
-
-      Serial.println(DEBUG_STRING + metodo +" petición... " + URL);
-      // start connection and send HTTP header
-      https.addHeader("Content-Type", "application/json");
-      if(metodo=="GET" )  httpCode = https.GET();
-      if(metodo=="POST"){ httpCode = https.POST(body);
-        Serial.println(DEBUG_STRING +"cuerpo solicitud: \n     "+ body);
-      }
-      // httpCode will be negative on error
-      if (httpCode > 0) {
-        Serial.println(DEBUG_STRING + metodo +" respuesta... código Status: "+ String(httpCode));
-
-        // queremos la respuesta del servidor
-        if (respuesta!=NULL) {
-          *respuesta = https.getString();
-          Serial.println(DEBUG_STRING+"cuerpo respuesta: \n     "+ *respuesta);
-        }
-      } else {
-        Serial.println(DEBUG_STRING+ metodo +"... falló, error: "+ String(https.errorToString(httpCode).c_str()) );
-      }
-
-      https.end();
-    } else {
-      Serial.println(DEBUG_STRING+"No se pudo conectar");
-    }
-    Serial.println(DEBUG_STRING+"tiempo de respuesta: "+ String(millis()-start) +" ms\n");
-    return httpCode;
-}
-
-
-/*------------------------------------------------------------------------------------------
 ---------------ZUMBADOR---------------------------------------------------------------------
 --------------------------------------------------------------------------------------------*/
 void zumbador(int gap, int freq){
@@ -206,7 +129,11 @@ void cerrarPuerta(){
 --------------------------------------------------------------------------------------------*/
 
 void estado_parking(char* topic, byte* payload, unsigned int length) {
-  String mensaje = String(std::string((char*)payload, length).c_str());
+  String mensaje;
+  mensaje.reserve(length);
+  for (unsigned int i = 0; i < length; i++) {
+    mensaje += static_cast<char>(payload[i]);
+  }
   Serial.println("Mensaje recibido [" + String(topic) + "] " + mensaje);
   // compruebo el topic
   if (String(topic) == topic_estado) {
@@ -246,19 +173,15 @@ void estado_parking(char* topic, byte* payload, unsigned int length) {
 --------------------------------------------------------------------------------------------*/
 void setup() {
   Serial.begin(115200);
-
-  int codigoStatus;
-  Serial.begin(115200);
   Serial.println();
   Serial.println("Empieza setup...");
-  Serial.println(DEBUG_STRING+"Placa: "+String(ARDUINO_BOARD));
-  Serial.println(DEBUG_STRING+"Comienza SETUP...");
+  Serial.println("Placa: " + String(ARDUINO_BOARD));
 
   // crea topics
   ID_PLACA = "ESP_" + String(ESP.getChipId());
-  topic_II12 = "II12/ACCESO";
-  topic_estado = "II12/ACCESO/ESTADO";
-  topic_CONEXION="II12/ACCESO/conexion";
+  topic_II12 = String(MQTT_TOPIC_PREFIX) + "/ACCESO";
+  topic_estado = topic_II12 + "/ESTADO";
+  topic_CONEXION = topic_II12 + "/conexion";
   
 
   //CONEXIONADO COMPONENTES
@@ -272,12 +195,7 @@ void setup() {
 
   conecta_wifi();
 
-  #ifdef __HTTPS__
-  ClienteWiFi.setFingerprint(fingerprint); // se comprobará el certificado del servidor
- //ClienteWiFi.setInsecure(); // si no se quiere comprobar el certificado del servidor
-  #endif
-
-  mqtt_client.setServer(mqtt_server.c_str(), 1883);
+  mqtt_client.setServer(mqtt_server.c_str(), MQTT_PORT);
   mqtt_client.setBufferSize(512);  // para poder enviar mensajes de hasta X bytes
   
 
@@ -349,8 +267,7 @@ void loop() {
   }
 
   //Se detecta un vehiculo que quiere entrar
-  bool detectado = false;
-  if(statusIR1!=1 and !detectado)
+  if(statusIR1 != 1)
   {
     Serial.println("VEHICULO EN ENTRADA");
     II12.clear();
@@ -358,7 +275,6 @@ void loop() {
     II12["detectado"] = "1";
     II12["entrada"] = "0";
     II12["salida"] = "0";
-    detectado = true;
     // Publicacion ------------------------------------------
     serializeJson(II12, stringII12);
     Serial.println("Topic   : " + topic_II12);
@@ -373,11 +289,6 @@ void loop() {
       abrirPuerta();
     }
   }
-  else if(statusIR1==1) 
-  {
-    detectado = false;
-  }
-
   //Se detecta una entrada
   bool entrada = false;
   while(statusIR1!=1) //senesor exterior se activa
